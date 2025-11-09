@@ -31,6 +31,8 @@ team-learning-system/
 │   ├── accounts/          # Auth and profiles
 │   ├── announcements/     
 │   └── manage.py
+    └── requirements.txt
+    
 ├── frontend/      # React frontend
 │   ├── src/
 │   │   ├── pages/         # Login, Profile, Members, Announcements
