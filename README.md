@@ -50,6 +50,7 @@ team-learning-system/
 
   * `master` → stable version
   * `dev` → active development
+  * if you create your own branch after complete your function just merge to the  `dev` branch
 * **Rule:** Always push your work to `dev` branch.
 
 **Example workflow:**
