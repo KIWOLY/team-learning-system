@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-
 
 # Team Learning Management System (TLMS)
 
