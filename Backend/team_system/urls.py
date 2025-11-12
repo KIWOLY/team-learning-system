@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include, re_path
 from django.views.generic import RedirectView
+
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view  # type: ignore
 from drf_yasg import openapi  # type: ignore
@@ -18,6 +19,9 @@ schema_view = get_schema_view(
     permission_classes=(permissions.AllowAny,),
 )
 
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
+
 urlpatterns = [
     path('admin/', admin.site.urls),
 
@@ -26,8 +30,15 @@ urlpatterns = [
     path('api/swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui-api'),
     path('api/redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc-api'),
 
-    # App URLs
-    path('api/', include('anouncements.urls')),
+    # Specific API v1 routes (must come BEFORE the generic 'api/' include)
+    path('api/v1/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/v1/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/v1/', include('accounts.urls')),
+
+    # App URLs (generic) — fix typo and include after specific routes
+    path('api/', include('announcements.urls')),
+
+    # web/account routes
     path('accounts/', include('accounts.urls')),
 
     # Redirect root
