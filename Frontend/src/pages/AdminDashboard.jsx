@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState, useEffect } from 'react';
 import api from '../services/services';
 
@@ -6,12 +7,12 @@ export default function AdminDashboard() {
   const [annForm, setAnnForm] = useState({ title: '', content: '' });
 
   useEffect(() => {
-    api.get('/users/').then(res => setUsers(res.data));
+    api.get('/api/users/').then(res => setUsers(res.data));
   }, []);
 
   const postAnnouncement = async (e) => {
     e.preventDefault();
-    await api.post('/announcements/', annForm);
+    await api.post('/api/announcements/create', annForm);
     setAnnForm({ title: '', content: '' });
     alert('Posted!');
   };

@@ -1,3 +1,4 @@
+import React from 'react';
 import { useEffect, useState } from 'react';
 import api from '../services/services';
 import AnnouncementCard from '../pages/Announcement';
@@ -10,8 +11,8 @@ export default function UserDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       const [annRes, teamRes] = await Promise.all([
-        api.get('/announcements/'),
-        api.get('/users/')
+        api.get('/api/announcements/'),
+        api.get('/api/users/')
       ]);
       setAnnouncements(annRes.data);
       setTeam(teamRes.data);

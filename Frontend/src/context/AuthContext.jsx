@@ -35,7 +35,13 @@ export const AuthProvider = ({ children }) => {
       const res = await api.post('/accounts/token/refresh/', { refresh });
       localStorage.setItem('access_token', res.data.access);
       const decoded = jwtDecode(res.data.access);
-      setUser(decoded);
+      // Extract user data with role
+      const userData = {
+        username: decoded.username,
+        email: decoded.email,
+        role: decoded.role || 'user',
+      };
+      setUser(userData);
       return true;
     } catch (err) {
       logout();
@@ -48,7 +54,13 @@ export const AuthProvider = ({ children }) => {
     const access = localStorage.getItem('access_token');
     if (access && !isTokenExpired(access)) {
       const decoded = jwtDecode(access);
-      setUser(decoded);
+      // Extract user data with role
+      const userData = {
+        username: decoded.username,
+        email: decoded.email,
+        role: decoded.role || 'user',
+      };
+      setUser(userData);
     } else if (access) {
       // Try refresh
       refreshToken().then(success => {
@@ -78,14 +90,11 @@ export const AuthProvider = ({ children }) => {
     return () => api.interceptors.response.eject(interceptor);
   }, []);
 
-  const login = async (email, password) => {
-    const res = await api.post('/account/login/', { email, password });
-    localStorage.setItem('access_token', res.data.access);
-    localStorage.setItem('refresh_token', res.data.refresh);
-
-    const decoded = jwtDecode(res.data.access);
-    setUser(decoded);
-    return decoded;
+  const login = (accessToken, refreshToken, userData) => {
+    localStorage.setItem('access_token', accessToken);
+    localStorage.setItem('refresh_token', refreshToken);
+    setUser(userData);
+    return userData;
   };
 
   const logout = () => {

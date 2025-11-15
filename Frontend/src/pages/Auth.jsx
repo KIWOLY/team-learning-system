@@ -4,13 +4,19 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { jwtDecode } from 'jwt-decode';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/services';
 
-// Zod Schema
-const authSchema = z.object({
-  username: z.string().min(3, 'Username must be at least 3 characters').optional(),
+// Zod Schema - different for login vs register
+const loginSchema = z.object({
+  username: z.string().min(1, 'Username is required'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
+const registerSchema = z.object({
+  username: z.string().min(3, 'Username must be at least 3 characters'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
@@ -28,52 +34,61 @@ export default function AuthForm() {
     formState: { errors },
     reset,
   } = useForm({
-    resolver: zodResolver(authSchema),
+    resolver: zodResolver(isLogin ? loginSchema : registerSchema),
   });
 
   const onSubmit = async (data) => {
-  setServerError('');
-  setLoading(true);
+    setServerError('');
+    setLoading(true);
 
-  try {
-    if (isLogin) {
-      // LOGIN
-      const res = await api.post('/accounts/login/', {
-        email: data.email,
-        password: data.password,
-      });
+    try {
+      if (isLogin) {
+        // LOGIN
+        const res = await api.post('/accounts/login/', {
+          username: data.username,
+          password: data.password,
+        });
 
-      // Use the response!
-      const { token, user } = res.data;
+        // JWT response contains access and refresh tokens
+        const { access, refresh } = res.data;
 
-      // Call context login to store token + user
-      authLogin(token, user);
+        // Decode the token to get user info including role
+        const decoded = jwtDecode(access);
+        const user = {
+          username: decoded.username,
+          email: decoded.email,
+          role: decoded.role || 'user',
+        };
 
-      // Navigate based on role
-      navigate(user.role === 'admin' ? '/admin' : '/dashboard');
-    } else {
-      // REGISTER
-      await api.post('/accounts/register/', {
-        username: data.username,
-        email: data.email,
-        password: data.password,
-      });
+        // Call context login to store tokens + user
+        authLogin(access, refresh, user);
 
-      alert('Registration successful! Please log in.');
-      setIsLogin(true);
-      reset();
+        // Navigate based on role
+        navigate(user.role === 'admin' ? '/admin' : '/dashboard');
+      } else {
+        // REGISTER
+        await api.post('/accounts/register/', {
+          username: data.username,
+          email: data.email,
+          password: data.password,
+        });
+
+        alert('Registration successful! Please log in.');
+        setIsLogin(true);
+        reset();
+      }
+    } catch (err) {
+      const msg =
+        err.response?.data?.detail ||
+        err.response?.data?.email?.[0] ||
+        err.response?.data?.username?.[0] ||
+        err.response?.data?.non_field_errors?.[0] ||
+        'Invalid username or password';
+      setServerError(msg);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    const msg =
-      err.response?.data?.detail ||
-      err.response?.data?.email?.[0] ||
-      err.response?.data?.non_field_errors?.[0] ||
-      'Invalid email or password';
-    setServerError(msg);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 px-4">
@@ -115,23 +130,42 @@ export default function AuthForm() {
             </div>
           )}
 
-          {/* Email */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Email
-            </label>
-            <input
-              {...register('email')}
-              type="email"
-              placeholder="christina@example.com"
-              className={`w-full px-4 py-3 rounded-lg border ${
-                errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-              } focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white`}
-            />
-            {errors.email && (
-              <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.email.message}</p>
-            )}
-          </div>
+          {/* Username (Login) or Email (Register) */}
+          {isLogin ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Username
+              </label>
+              <input
+                {...register('username')}
+                type="text"
+                placeholder="Enter your username"
+                className={`w-full px-4 py-3 rounded-lg border ${
+                  errors.username ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                } focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white`}
+              />
+              {errors.username && (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.username.message}</p>
+              )}
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Email
+              </label>
+              <input
+                {...register('email')}
+                type="email"
+                placeholder="your.email@example.com"
+                className={`w-full px-4 py-3 rounded-lg border ${
+                  errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                } focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white`}
+              />
+              {errors.email && (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.email.message}</p>
+              )}
+            </div>
+          )}
 
           {/* Password */}
           <div>
