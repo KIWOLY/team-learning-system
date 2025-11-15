@@ -2,12 +2,11 @@ import React from "react";
 
 const ProfileForm = ({ profile, isEditing, onChange }) => {
   const fields = [
-    { name: "username", type: "text", placeholder: "Enter your username" },
+    { name: "first_name", type: "text", placeholder: "Enter your first name" },
+    { name: "last_name", type: "text", placeholder: "Enter your last name" },
     { name: "email", type: "email", placeholder: "Enter your email address" },
-    { name: "career", type: "text", placeholder: "Your profession or career" },
-    { name: "github_username", type: "text", placeholder: "Your GitHub username" },
-    { name: "birthday", type: "date" },
-    { name: "hobby", type: "text", placeholder: "Your hobbies and interests", fullWidth: true },
+    { name: "programme", type: "text", placeholder: "Your programme or course" },
+    { name: "year_of_study", type: "text", placeholder: "Year of study (e.g., Year 1, Year 2)" },
   ];
 
   return (

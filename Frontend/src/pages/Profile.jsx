@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import api from "../services/services";
 import ProfilePicture from "../components/Profile/ProfilePicture";
 import ProfileForm from "../components/Profile/ProfileForm";
 import ProfileActions from "../components/Profile/ProfileActions";
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [profile, setProfile] = useState({
-    username: "", email: "", career: "", github_username: "", birthday: "", hobby: ""
+    first_name: "", last_name: "", email: "", programme: "", year_of_study: ""
   });
   const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState("");
@@ -16,24 +18,31 @@ const Profile = () => {
   const [profilePic, setProfilePic] = useState(null);
   const [previewImage, setPreviewImage] = useState("");
 
-  const API_URL = "http://localhost:8000/api/profile/";
+  const API_URL = "/api/v1/profiles/me/";
 
   useEffect(() => {
     fetchProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchProfile = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(API_URL, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      const response = await api.get(API_URL);
+      setProfile({
+        first_name: response.data.first_name || "",
+        last_name: response.data.last_name || "",
+        email: response.data.email || user?.email || "",
+        programme: response.data.programme || "",
+        year_of_study: response.data.year_of_study || "",
       });
-      setProfile(response.data);
-      if (response.data.profile_pic) {
-        setPreviewImage(response.data.profile_pic);
+      if (response.data.profile_picture_url) {
+        setPreviewImage(response.data.profile_picture_url);
+      } else if (response.data.profile_picture) {
+        setPreviewImage(response.data.profile_picture);
       }
     } catch (error) {
-      setMessage("Failed to fetch profile");
+      console.error('Failed to fetch profile:', error.response?.data || error.message);
     } finally {
       setLoading(false);
     }
@@ -59,25 +68,50 @@ const Profile = () => {
   };
 
   const handleSave = async () => {
+    setLoading(true);
+    setMessage("");
     try {
       const formData = new FormData();
-      Object.keys(profile).forEach(key => formData.append(key, profile[key]));
+      formData.append('first_name', profile.first_name || '');
+      formData.append('last_name', profile.last_name || '');
+      // Don't send email - backend will use authenticated user's email
+      if (profile.programme) formData.append('programme', profile.programme);
+      if (profile.year_of_study) formData.append('year_of_study', profile.year_of_study);
       
-      if (profilePic) formData.append('profile_pic', profilePic);
-      else if (previewImage === "") formData.append('remove_profile_pic', 'true');
+      if (profilePic) {
+        formData.append('profile_picture', profilePic);
+      }
 
-      await axios.put(API_URL, formData, {
+      await api.put(API_URL, formData, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
           'Content-Type': 'multipart/form-data',
         },
       });
       
       setMessage("Profile updated successfully ✅");
       setIsEditing(false);
-      setTimeout(() => navigate('/dashboard'), 1000);
+      setProfilePic(null);
+      // Refresh profile data
+      await fetchProfile();
+      setTimeout(() => {
+        setMessage("");
+        navigate('/dashboard');
+      }, 1500);
     } catch (error) {
-      setMessage("Error updating profile ❌");
+      // Log detailed error to console only
+      console.error('Profile update error:', error.response?.data || error.message);
+      if (error.response?.data) {
+        if (error.response.data.errors) {
+          console.error('Validation errors:', error.response.data.errors);
+        } else if (error.response.data.detail) {
+          console.error('Error detail:', error.response.data.detail);
+        } else {
+          console.error('Field errors:', error.response.data);
+        }
+      }
+      // Don't display error in browser - only in console
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -120,7 +154,7 @@ const Profile = () => {
 
             <ProfilePicture
               previewImage={previewImage}
-              username={profile.username}
+              username={profile.first_name || user?.username || 'User'}
               isEditing={isEditing}
               onImageChange={handleImageChange}
               onRemoveImage={removeProfilePic}

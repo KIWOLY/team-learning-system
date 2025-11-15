@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import AuthForm from './pages/Auth';
 import UserDashboard from './pages/UserDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import Profile from './pages/Profile';
 import Navbar from './components/Navbar';
 
 const RequireAuth = ({ children, allowedRoles }) => {
@@ -49,8 +50,15 @@ const AppContent = () => {
             </RequireAuth>
           }
         />
-
-<Route path="*" element={<Navigate to={user ? (user.role === 'admin' ? '/admin' : '/dashboard') : '/auth'} />} />
+        <Route
+          path="/profile"
+          element={
+            <RequireAuth>
+              <Profile />
+            </RequireAuth>
+          }
+        />
+        <Route path="*" element={<Navigate to={user ? (user.role === 'admin' ? '/admin' : '/dashboard') : '/auth'} />} />
       </Routes>
     </>
   );
