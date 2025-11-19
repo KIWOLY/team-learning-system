@@ -44,7 +44,7 @@ export default function AuthForm() {
     try {
       if (isLogin) {
         // LOGIN
-        const res = await api.post('/accounts/login/', {
+        const res = await api.post('/api/v1/login/', {
           username: data.username,
           password: data.password,
         });
@@ -67,7 +67,7 @@ export default function AuthForm() {
         navigate(user.role === 'admin' ? '/admin' : '/dashboard');
       } else {
         // REGISTER
-        await api.post('/accounts/register/', {
+        await api.post('/api/v1/register/', {
           username: data.username,
           email: data.email,
           password: data.password,
