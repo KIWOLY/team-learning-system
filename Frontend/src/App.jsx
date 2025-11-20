@@ -1,18 +1,25 @@
 // src/App.jsx
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import AuthForm from './pages/Auth';
-import UserDashboard from './pages/UserDashboard';
-import AdminDashboard from './pages/AdminDashboard';
-import Profile from './pages/Profile';
-import Navbar from './components/Navbar';
+import React from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import AuthForm from "./pages/Auth";
+import UserDashboard from "./pages/UserDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
+import Profile from "./pages/Profile";
+import Navbar from "./components/Navbar";
+import Announcements from "./pages/Announcement";
 
 const RequireAuth = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
-  if (loading) return <div className="flex justify-center p-20"><div className="animate-spin rounded-full h-12 w-12 border-t-4 border-indigo-600"></div></div>;
+  if (loading)
+    return (
+      <div className="flex justify-center p-20">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-indigo-600"></div>
+      </div>
+    );
   if (!user) return <Navigate to="/auth" />;
-  if (allowedRoles && !allowedRoles.includes(user.role)) return <Navigate to="/dashboard" />;
+  if (allowedRoles && !allowedRoles.includes(user.role))
+    return <Navigate to="/dashboard" />;
   return children;
 };
 
@@ -45,7 +52,7 @@ const AppContent = () => {
         <Route
           path="/admin"
           element={
-            <RequireAuth allowedRoles={['admin']}>
+            <RequireAuth allowedRoles={["admin"]}>
               <AdminDashboard />
             </RequireAuth>
           }
@@ -58,7 +65,37 @@ const AppContent = () => {
             </RequireAuth>
           }
         />
-        <Route path="*" element={<Navigate to={user ? (user.role === 'admin' ? '/admin' : '/dashboard') : '/auth'} />} />
+
+        <Route
+          path="/announcements"
+          element={
+            <RequireAuth>
+              <Announcements />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/profile/:id?"
+          element={
+            <RequireAuth>
+              <Profile />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to={
+                user
+                  ? user.role === "admin"
+                    ? "/admin"
+                    : "/dashboard"
+                  : "/auth"
+              }
+            />
+          }
+        />
       </Routes>
     </>
   );

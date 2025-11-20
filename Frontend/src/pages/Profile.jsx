@@ -1,5 +1,7 @@
+// src/pages/Profile.jsx
+
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/services";
 import ProfilePicture from "../components/Profile/ProfilePicture";
@@ -7,42 +9,46 @@ import ProfileForm from "../components/Profile/ProfileForm";
 import ProfileActions from "../components/Profile/ProfileActions";
 
 const Profile = () => {
+  const { id } = useParams(); // undefined → own profile, number → other user
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user: currentUser } = useAuth();
+
   const [profile, setProfile] = useState({
-    first_name: "", last_name: "", email: "", programme: "", year_of_study: ""
+    first_name: "", last_name: "", email: "", programme: "", year_of_study: "", profile_picture_url: ""
   });
   const [isEditing, setIsEditing] = useState(false);
   const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [profilePic, setProfilePic] = useState(null);
-  const [previewImage, setPreviewImage] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
 
-  const API_URL = "/api/v1/profiles/me/";
+  const API_URL = id 
+    ? `/api/v1/profiles/${id}/` 
+    : "/api/v1/profiles/me/";
 
   useEffect(() => {
     fetchProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [id]);
 
   const fetchProfile = async () => {
     setLoading(true);
     try {
       const response = await api.get(API_URL);
+      const data = response.data;
+
       setProfile({
-        first_name: response.data.first_name || "",
-        last_name: response.data.last_name || "",
-        email: response.data.email || user?.email || "",
-        programme: response.data.programme || "",
-        year_of_study: response.data.year_of_study || "",
+        first_name: data.first_name || "",
+        last_name: data.last_name || "",
+        email: data.email || "",
+        programme: data.programme || "",
+        year_of_study: data.year_of_study || "",
+        profile_picture_url: data.profile_picture_url || data.profile_picture || "",
       });
-      if (response.data.profile_picture_url) {
-        setPreviewImage(response.data.profile_picture_url);
-      } else if (response.data.profile_picture) {
-        setPreviewImage(response.data.profile_picture);
-      }
+
+      // Determine if this is the current user's profile
+      setIsOwnProfile(!id || Number(id) === currentUser?.id);
     } catch (error) {
-      console.error('Failed to fetch profile:', error.response?.data || error.message);
+      console.error('Failed to fetch profile:', error);
+      setMessage("Could not load profile");
     } finally {
       setLoading(false);
     }
@@ -55,16 +61,12 @@ const Profile = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setProfilePic(file);
       const reader = new FileReader();
-      reader.onloadend = () => setPreviewImage(reader.result);
+      reader.onloadend = () => {
+        setProfile(prev => ({ ...prev, profile_picture_url: reader.result }));
+      };
       reader.readAsDataURL(file);
     }
-  };
-
-  const removeProfilePic = () => {
-    setProfilePic(null);
-    setPreviewImage("");
   };
 
   const handleSave = async () => {
@@ -74,56 +76,34 @@ const Profile = () => {
       const formData = new FormData();
       formData.append('first_name', profile.first_name || '');
       formData.append('last_name', profile.last_name || '');
-      // Don't send email - backend will use authenticated user's email
       if (profile.programme) formData.append('programme', profile.programme);
       if (profile.year_of_study) formData.append('year_of_study', profile.year_of_study);
-      
-      if (profilePic) {
-        formData.append('profile_picture', profilePic);
+
+      // Only allow image upload for own profile
+      const fileInput = document.querySelector('input[type="file"]');
+      if (fileInput?.files[0]) {
+        formData.append('profile_picture', fileInput.files[0]);
       }
 
-      await api.put(API_URL, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      await api.put("/api/v1/profiles/me/", formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-      
-      setMessage("Profile updated successfully ✅");
+
+      setMessage("Profile updated successfully");
       setIsEditing(false);
-      setProfilePic(null);
-      // Refresh profile data
       await fetchProfile();
-      setTimeout(() => {
-        setMessage("");
-        navigate('/dashboard');
-      }, 1500);
+      setTimeout(() => setMessage(""), 3000);
     } catch (error) {
-      // Log detailed error to console only
-      console.error('Profile update error:', error.response?.data || error.message);
-      if (error.response?.data) {
-        if (error.response.data.errors) {
-          console.error('Validation errors:', error.response.data.errors);
-        } else if (error.response.data.detail) {
-          console.error('Error detail:', error.response.data.detail);
-        } else {
-          console.error('Field errors:', error.response.data);
-        }
-      }
-      // Don't display error in browser - only in console
+      console.error('Update failed:', error.response?.data || error);
+      setMessage("Failed to update profile");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCancel = () => {
-    setIsEditing(false);
-    setMessage("");
-    fetchProfile();
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading profile...</p>
@@ -132,46 +112,80 @@ const Profile = () => {
     );
   }
 
+  const fullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || "User";
+
   return (
     <div className="min-h-screen bg-gray-50 py-4 px-4 sm:px-6 lg:px-8">
-      {/* Added max-w-6xl for very wide but with rounded corners */}
       <div className="w-full max-w-6xl mx-auto">
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-          {/* Header - Light Blue with White Text */}
-          <div className="bg-blue-500 px-6 py-8 sm:px-10 sm:py-12 rounded-t-2xl">
-            <h1 className="text-3xl sm:text-4xl font-bold text-white text-center">My Profile</h1>
-            <p className="text-blue-100 text-lg sm:text-xl mt-3 text-center">Manage your personal information</p>
+
+          {/* Header */}
+          <div className="bg-blue-500 px-6 py-8 sm:px-10 sm:py-12 rounded-t-2xl relative">
+            <button
+              onClick={() => navigate(-1)}
+              className="absolute top-4 left-6 text-white hover:bg-blue-600/30 px-3 py-1 rounded-lg transition"
+            >
+              ← Back
+            </button>
+
+            <h1 className="text-3xl sm:text-4xl font-bold text-white text-center">
+              {isOwnProfile ? "My Profile" : `${fullName}'s Profile`}
+            </h1>
+            <p className="text-blue-100 text-lg sm:text-xl mt-3 text-center">
+              {isOwnProfile 
+                ? "Manage your personal information" 
+                : "View team member details"}
+            </p>
           </div>
 
           <div className="px-6 py-8 sm:px-10 sm:py-10">
             {message && (
-              <div className={`mb-8 p-4 rounded-xl ${
-                message.includes("✅") ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"
+              <div className={`mb-8 p-4 rounded-xl text-center font-medium ${
+                message.includes("success") || message.includes("✅")
+                  ? "bg-green-50 text-green-700 border border-green-200"
+                  : "bg-red-50 text-red-700 border border-red-200"
               }`}>
-                <p className="text-sm font-medium text-center sm:text-left">{message}</p>
+                {message}
               </div>
             )}
 
+            {/* Profile Picture - Read-only for others */}
             <ProfilePicture
-              previewImage={previewImage}
-              username={profile.first_name || user?.username || 'User'}
-              isEditing={isEditing}
+              previewImage={profile.profile_picture_url}
+              username={fullName}
+              isEditing={isEditing && isOwnProfile}
               onImageChange={handleImageChange}
-              onRemoveImage={removeProfilePic}
+              onRemoveImage={() => setProfile(prev => ({ ...prev, profile_picture_url: "" }))}
+              disabled={!isOwnProfile}
             />
 
+            {/* Profile Form */}
             <ProfileForm
               profile={profile}
-              isEditing={isEditing}
+              isEditing={isEditing && isOwnProfile}
               onChange={handleChange}
+              disabled={!isOwnProfile}
             />
 
-            <ProfileActions
-              isEditing={isEditing}
-              onEdit={() => setIsEditing(true)}
-              onSave={handleSave}
-              onCancel={handleCancel}
-            />
+            {/* Actions */}
+            {isOwnProfile ? (
+              <ProfileActions
+                isEditing={isEditing}
+                onEdit={() => setIsEditing(true)}
+                onSave={handleSave}
+                onCancel={() => {
+                  setIsEditing(false);
+                  fetchProfile();
+                }}
+                loading={loading}
+              />
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500 italic">
+                  {profile.first_name}'s profile.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
