@@ -1,30 +1,125 @@
-import React from 'react'
-import TeamCard from '../components/TeamCard'
+import React from "react";
+import { useNavigate } from "react-router-dom";
 
-const sampleTeams = [
-  { id: 1, name: 'Frontend Learners', description: 'Practice React and UI patterns', members: 6 },
-  { id: 2, name: 'Backend Builders', description: 'Django, APIs and databases', members: 4 },
-  { id: 3, name: 'Data Enthusiasts', description: 'Data science experiments', members: 5 }
-]
+export default function Home() {
+  const navigate = useNavigate();
 
-export default function Home(){
   return (
-    <section>
-      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16}}>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        background: "linear-gradient(135deg, #4a90e2, #50c878)",
+        color: "#fff",
+        fontFamily: "Arial, sans-serif",
+      }}
+    >
+      {/* Navbar */}
+      <nav
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "1rem 2rem",
+          background: "rgba(255, 255, 255, 0.1)",
+          backdropFilter: "blur(10px)",
+        }}
+      >
+        <h2 style={{ margin: 0, fontWeight: "bold" }}>TLMS</h2>
         <div>
-          <h1 style={{margin:0}}>Welcome to Team Learning</h1>
-          <p style={{marginTop:6, color:'#6b7280'}}>Collaborative learning groups for your team projects.</p>
+          <button
+            onClick={() => navigate("/")}
+            style={navButtonStyle}
+          >
+            Home
+          </button>
+          <button
+            onClick={() => navigate("/login")}
+            style={navButtonStyle}
+          >
+            Login
+          </button>
+          <button
+            onClick={() => navigate("/register")}
+            style={navButtonStyle}
+          >
+            Register
+          </button>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          textAlign: "center",
+          padding: "2rem",
+        }}
+      >
+        <h1 style={{ fontSize: "3rem", marginBottom: "1rem" }}>
+          Welcome to Team Learning Management System
+        </h1>
+        <p style={{ fontSize: "1.2rem", maxWidth: "600px" }}>
+          Collaborate, Learn, and Grow together with your team.
+          Manage your group projects, announcements, and progress — all in one place.
+        </p>
+
+        <div style={{ marginTop: "2rem" }}>
+          <button
+            onClick={() => navigate("/login")}
+            style={mainButtonStyle}
+          >
+            Login
+          </button>
+          <button
+            onClick={() => navigate("/register")}
+            style={mainButtonStyle}
+          >
+            Register
+          </button>
         </div>
       </div>
 
-      <div>
-        <h2 style={{marginTop:0}}>Active Teams</h2>
-        <div className="team-grid" style={{marginTop:12}}>
-          {sampleTeams.map(t => (
-            <TeamCard key={t.id} team={t} />
-          ))}
-        </div>
-      </div>
-    </section>
-  )
+      {/* Footer */}
+      <footer
+        style={{
+          textAlign: "center",
+          padding: "1rem",
+          background: "rgba(255, 255, 255, 0.1)",
+          backdropFilter: "blur(10px)",
+        }}
+      >
+        <p style={{ margin: 0 }}>© {new Date().getFullYear()} TLMS | Built for Collaborative Learning</p>
+      </footer>
+    </div>
+  );
 }
+
+// 🔹 Reusable Styles
+const navButtonStyle = {
+  background: "transparent",
+  color: "#fff",
+  border: "1px solid #fff",
+  borderRadius: "5px",
+  padding: "0.5rem 1rem",
+  marginLeft: "0.5rem",
+  cursor: "pointer",
+  transition: "0.3s",
+};
+
+const mainButtonStyle = {
+  background: "#fff",
+  color: "#4a90e2",
+  border: "none",
+  borderRadius: "8px",
+  padding: "0.8rem 1.8rem",
+  margin: "0.5rem",
+  fontWeight: "bold",
+  cursor: "pointer",
+  transition: "0.3s ease",
+};
